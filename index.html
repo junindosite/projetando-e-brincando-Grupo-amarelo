@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Peças de Jogos para Impressão a Laser (HTML/CSS)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container-fluid {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        /* Estilos para a Área de Peças (Paleta) */
+        #pieces-palette {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 200px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 15px;
+        }
+
+        /* Estilos para a Área de Visualização */
+        #display-area {
+            background-color: #fff;
+            border: 2px dashed #ccc;
+            min-height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Estilos para os wrappers das peças na paleta */
+        .piece-wrapper {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            background-color: #fefefe;
+        }
+
+        /* Estilos para os SVGs das peças */
+        .piece-svg {
+            width: 90%;
+            height: 90%;
+            fill: #343a40; /* Cor padrão para as formas */
+            stroke: #212529;
+            stroke-width: 1.5; /* Borda para o corte a laser */
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Estilos específicos para jogos */
+        .domino-dot {
+            fill: #fff;
+            stroke: #fff;
+            stroke-width: 0.5;
+        }
+
+        .tictactoe-x {
+            fill: none;
+            stroke: #dc3545;
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+        .tictactoe-o {
+            fill: none;
+            stroke: #28a745;
+            stroke-width: 4;
+        }
+        .tictactoe-board-line {
+            stroke: #6c757d;
+            stroke-width: 3;
+        }
+
+        /* Estilos para o Jogo de Damas */
+        .checker-piece-light {
+            fill: #adb5bd; /* Cor clara para uma das equipes */
+            stroke: #6c757d;
+            stroke-width: 1.5;
+        }
+        .checker-piece-dark {
+            fill: #495057; /* Cor escura para a outra equipe */
+            stroke: #343a40;
+            stroke-width: 1.5;
+        }
+        .checker-king-marker {
+            fill: #ffc107; /* Cor para o marcador de dama/rei */
+            stroke: #e0a800;
+            stroke-width: 1;
+        }
+        .checker-board-square-light {
+            fill: #f0d9b5; /* Cor clara do tabuleiro */
+            stroke: #333;
+            stroke-width: 1;
+        }
+        .checker-board-square-dark {
+            fill: #b58863; /* Cor escura do tabuleiro */
+            stroke: #333;
+            stroke-width: 1;
+        }
+        .checker-board-outline {
+            stroke: #212529;
+            stroke-width: 3;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="text-center mb-4">Visualizador de Peças de Jogos para Impressão a Laser</h1>
+        <p class="text-center text-muted">Visualize as formas das peças de jogos clássicos. Estas são as bases para seu corte a laser.</p>
+
+        <div class="row">
+            <div class="col-md-3">
+                <h3>Paleta de Peças</h3>
+                <div id="pieces-palette">
+
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            <circle class="domino-dot" cx="25" cy="25" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            <circle class="domino-dot" cx="20" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="30" cy="35" r="3"/>
+                            <circle class="domino-dot" cx="75" cy="25" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            <circle class="domino-dot" cx="20" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="25" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="30" cy="35" r="3"/>
+                            <circle class="domino-dot" cx="70" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="75" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="80" cy="35" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            <circle class="domino-dot" cx="20" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="20" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="20" cy="35" r="3"/>
+                            <circle class="domino-dot" cx="30" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="30" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="30" cy="35" r="3"/>
+                            <circle class="domino-dot" cx="70" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="70" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="70" cy="35" r="3"/>
+                            <circle class="domino-dot" cx="80" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="80" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="80" cy="35" r="3"/>
+                        </svg>
+                    </div>
+
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-piece-light" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-piece-dark" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-piece-light" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" />
+                            <circle class="checker-king-marker" cx="50" cy="50" r="15" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-piece-dark" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" />
+                            <circle class="checker-king-marker" cx="50" cy="50" r="15" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-board-square-light" viewBox="0 0 100 100">
+                            <rect x="0" y="0" width="100" height="100" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg checker-board-square-dark" viewBox="0 0 100 100">
+                            <rect x="0" y="0" width="100" height="100" />
+                        </svg>
+                    </div>
+
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 100">
+                            <line class="tictactoe-x" x1="20" y1="20" x2="80" y2="80" />
+                            <line class="tictactoe-x" x1="80" y1="20" x2="20" y2="80" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper">
+                        <svg class="piece-svg" viewBox="0 0 100 100">
+                            <circle class="tictactoe-o" cx="50" cy="50" r="30" />
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper" style="width: 200px; height: 200px;">
+                        <svg class="piece-svg" viewBox="0 0 150 150">
+                            <line class="tictactoe-board-line" x1="50" y1="0" x2="50" y2="150" />
+                            <line class="tictactoe-board-line" x1="100" y1="0" x2="100" y2="150" />
+                            <line class="tictactoe-board-line" x1="0" y1="50" x2="150" y2="50" />
+                            <line class="tictactoe-board-line" x1="0" y1="100" x2="150" y2="100" />
+                        </svg>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <h3>Área de Visualização para Corte a Laser</h3>
+                <div id="display-area">
+                    Arraste o arquivo HTML para seu navegador para visualizar as formas.
+                    <br><br>
+                    Para impressão a laser, use um software que importe SVGs e organize as peças.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
