@@ -35,7 +35,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -43,6 +43,11 @@
             color: #6c757d;
             text-align: center;
             padding: 20px;
+        }
+
+        #display-area.has-pieces {
+            font-size: 0;
+            color: transparent;
         }
 
         /* Estilos para os wrappers das peças na paleta */
@@ -55,6 +60,40 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             border-radius: 5px;
             background-color: #fefefe;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .piece-wrapper:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .piece-wrapper:active {
+            cursor: grabbing;
+        }
+
+        /* Estilos para peças no display */
+        .display-piece {
+            position: absolute;
+            cursor: move;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+
+        .display-piece:hover {
+            transform: scale(1.02);
+        }
+
+        .display-piece.dragging {
+            z-index: 100;
+            transform: scale(1.1);
+        }
+
+        /* Wrapper especial para peças grandes no display */
+        .large-piece-wrapper {
+            width: 140px;
+            height: 140px;
         }
 
         /* Estilos para os SVGs das peças */
@@ -122,41 +161,75 @@
             stroke-width: 3;
             fill: none;
         }
+
+        /* Botões de controle */
+        .control-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Área de drop destacada */
+        #display-area.drag-over {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+        }
+
+        /* Contador de peças */
+        .piece-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <h1 class="text-center mb-4">Visualizador de Peças de Jogos para Impressão a Laser</h1>
-        <p class="text-center text-muted">Visualize as formas das peças de jogos clássicos. Estas são as bases para seu corte a laser.</p>
+        <p class="text-center text-muted">Arraste as peças da paleta para a área de visualização. Clique duas vezes em uma peça para removê-la.</p>
+
+        <div class="control-buttons">
+            <button class="btn btn-primary" onclick="createCompleteGame('domino')">Criar Jogo de Dominó Completo</button>
+            <button class="btn btn-success" onclick="createCompleteGame('checkers')">Criar Jogo de Damas Completo</button>
+            <button class="btn btn-info" onclick="createCompleteGame('tictactoe')">Criar Jogo da Velha Completo</button>
+            <button class="btn btn-warning" onclick="clearDisplay()">Limpar Tudo</button>
+            <button class="btn btn-secondary" onclick="exportSVG()">Exportar SVG</button>
+        </div>
 
         <div class="row">
             <div class="col-md-3">
                 <h3>Paleta de Peças</h3>
                 <div id="pieces-palette">
-
-                    <div class="piece-wrapper">
+                    <!-- Peças de Dominó -->
+                    <div class="piece-wrapper" data-piece-type="domino-0-0">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
-                            </svg>
+                        </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="domino-0-1">
+                        <svg class="piece-svg" viewBox="0 0 100 50">
+                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
+                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
+                            <circle class="domino-dot" cx="75" cy="25" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="piece-wrapper" data-piece-type="domino-1-2">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
                             <circle class="domino-dot" cx="25" cy="25" r="3"/>
+                            <circle class="domino-dot" cx="70" cy="15" r="3"/>
+                            <circle class="domino-dot" cx="80" cy="35" r="3"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
-                        <svg class="piece-svg" viewBox="0 0 100 50">
-                            <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
-                            <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
-                            <circle class="domino-dot" cx="20" cy="15" r="3"/>
-                            <circle class="domino-dot" cx="30" cy="35" r="3"/>
-                            <circle class="domino-dot" cx="75" cy="25" r="3"/>
-                        </svg>
-                    </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="domino-3-3">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
@@ -168,7 +241,7 @@
                             <circle class="domino-dot" cx="80" cy="35" r="3"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="domino-6-6">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
@@ -187,51 +260,53 @@
                         </svg>
                     </div>
 
-                    <div class="piece-wrapper">
+                    <!-- Peças de Damas -->
+                    <div class="piece-wrapper" data-piece-type="checker-light">
                         <svg class="piece-svg checker-piece-light" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="checker-dark">
                         <svg class="piece-svg checker-piece-dark" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="checker-light-king">
                         <svg class="piece-svg checker-piece-light" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" />
                             <circle class="checker-king-marker" cx="50" cy="50" r="15" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="checker-dark-king">
                         <svg class="piece-svg checker-piece-dark" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" />
                             <circle class="checker-king-marker" cx="50" cy="50" r="15" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="checker-square-light">
                         <svg class="piece-svg checker-board-square-light" viewBox="0 0 100 100">
                             <rect x="0" y="0" width="100" height="100" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="checker-square-dark">
                         <svg class="piece-svg checker-board-square-dark" viewBox="0 0 100 100">
                             <rect x="0" y="0" width="100" height="100" />
                         </svg>
                     </div>
 
-                    <div class="piece-wrapper">
+                    <!-- Peças de Jogo da Velha -->
+                    <div class="piece-wrapper" data-piece-type="tictactoe-x">
                         <svg class="piece-svg" viewBox="0 0 100 100">
                             <line class="tictactoe-x" x1="20" y1="20" x2="80" y2="80" />
                             <line class="tictactoe-x" x1="80" y1="20" x2="20" y2="80" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper">
+                    <div class="piece-wrapper" data-piece-type="tictactoe-o">
                         <svg class="piece-svg" viewBox="0 0 100 100">
                             <circle class="tictactoe-o" cx="50" cy="50" r="30" />
                         </svg>
                     </div>
-                    <div class="piece-wrapper" style="width: 200px; height: 200px;">
+                    <div class="piece-wrapper large-piece-wrapper" data-piece-type="tictactoe-board">
                         <svg class="piece-svg" viewBox="0 0 150 150">
                             <line class="tictactoe-board-line" x1="50" y1="0" x2="50" y2="150" />
                             <line class="tictactoe-board-line" x1="100" y1="0" x2="100" y2="150" />
@@ -239,19 +314,297 @@
                             <line class="tictactoe-board-line" x1="0" y1="100" x2="150" y2="100" />
                         </svg>
                     </div>
-
                 </div>
             </div>
 
             <div class="col-md-9">
                 <h3>Área de Visualização para Corte a Laser</h3>
                 <div id="display-area">
-                    Arraste o arquivo HTML para seu navegador para visualizar as formas.
+                    <div class="piece-counter" id="piece-counter">0 peças</div>
+                    Arraste as peças da paleta para aqui para visualizar seu layout de corte.
                     <br><br>
-                    Para impressão a laser, use um software que importe SVGs e organize as peças.
+                    Use os botões acima para criar jogos completos automaticamente.
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+        let pieceCounter = 0;
+
+        // Inicializar eventos de drag and drop
+        function initializeDragAndDrop() {
+            const pieceWrappers = document.querySelectorAll('.piece-wrapper');
+            const displayArea = document.getElementById('display-area');
+
+            // Adicionar eventos para as peças da paleta
+            pieceWrappers.forEach(wrapper => {
+                wrapper.addEventListener('mousedown', startDrag);
+            });
+
+            // Adicionar eventos para a área de display
+            displayArea.addEventListener('dragover', handleDragOver);
+            displayArea.addEventListener('drop', handleDrop);
+            displayArea.addEventListener('mousemove', handleMouseMove);
+            displayArea.addEventListener('mouseup', handleMouseUp);
+
+            // Prevenir comportamentos padrão
+            displayArea.addEventListener('dragover', e => e.preventDefault());
+            displayArea.addEventListener('drop', e => e.preventDefault());
+        }
+
+        function startDrag(e) {
+            e.preventDefault();
+            const wrapper = e.currentTarget;
+            
+            // Criar uma cópia da peça
+            const clone = wrapper.cloneNode(true);
+            clone.classList.add('display-piece');
+            clone.classList.remove('piece-wrapper');
+            
+            // Posicionar a peça na área de display
+            const displayArea = document.getElementById('display-area');
+            const rect = displayArea.getBoundingClientRect();
+            
+            clone.style.left = (e.clientX - rect.left - 35) + 'px';
+            clone.style.top = (e.clientY - rect.top - 35) + 'px';
+            
+            displayArea.appendChild(clone);
+            
+            // Configurar para arrastar a nova peça
+            draggedElement = clone;
+            offset.x = 35;
+            offset.y = 35;
+            
+            clone.classList.add('dragging');
+            
+            // Adicionar eventos específicos para esta peça
+            clone.addEventListener('mousedown', startMovePiece);
+            clone.addEventListener('dblclick', removePiece);
+            
+            updatePieceCounter();
+            updateDisplayAreaState();
+        }
+
+        function startMovePiece(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            draggedElement = e.currentTarget;
+            const rect = draggedElement.getBoundingClientRect();
+            offset.x = e.clientX - rect.left;
+            offset.y = e.clientY - rect.top;
+            
+            draggedElement.classList.add('dragging');
+        }
+
+        function handleMouseMove(e) {
+            if (!draggedElement) return;
+            
+            const displayArea = document.getElementById('display-area');
+            const rect = displayArea.getBoundingClientRect();
+            
+            const x = e.clientX - rect.left - offset.x;
+            const y = e.clientY - rect.top - offset.y;
+            
+            draggedElement.style.left = Math.max(0, Math.min(x, rect.width - draggedElement.offsetWidth)) + 'px';
+            draggedElement.style.top = Math.max(0, Math.min(y, rect.height - draggedElement.offsetHeight)) + 'px';
+        }
+
+        function handleMouseUp(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function removePiece(e) {
+            e.currentTarget.remove();
+            updatePieceCounter();
+            updateDisplayAreaState();
+        }
+
+        function updatePieceCounter() {
+            const displayArea = document.getElementById('display-area');
+            const pieces = displayArea.querySelectorAll('.display-piece');
+            pieceCounter = pieces.length;
+            document.getElementById('piece-counter').textContent = `${pieceCounter} peças`;
+        }
+
+        function updateDisplayAreaState() {
+            const displayArea = document.getElementById('display-area');
+            if (pieceCounter > 0) {
+                displayArea.classList.add('has-pieces');
+            } else {
+                displayArea.classList.remove('has-pieces');
+            }
+        }
+
+        function clearDisplay() {
+            const displayArea = document.getElementById('display-area');
+            const pieces = displayArea.querySelectorAll('.display-piece');
+            pieces.forEach(piece => piece.remove());
+            updatePieceCounter();
+            updateDisplayAreaState();
+        }
+
+        function createCompleteGame(gameType) {
+            clearDisplay();
+            
+            const displayArea = document.getElementById('display-area');
+            const rect = displayArea.getBoundingClientRect();
+            
+            if (gameType === 'domino') {
+                createDominoSet();
+            } else if (gameType === 'checkers') {
+                createCheckersSet();
+            } else if (gameType === 'tictactoe') {
+                createTicTacToeSet();
+            }
+        }
+
+        function createDominoSet() {
+            const dominoTypes = [
+                'domino-0-0', 'domino-0-1', 'domino-1-2', 'domino-3-3', 'domino-6-6'
+            ];
+            
+            let x = 20, y = 20;
+            const spacing = 110;
+            const maxWidth = 800;
+            
+            // Criar múltiplas peças de cada tipo
+            dominoTypes.forEach((type, index) => {
+                for (let i = 0; i < 3; i++) {
+                    createPieceAtPosition(type, x, y);
+                    x += spacing;
+                    if (x > maxWidth) {
+                        x = 20;
+                        y += 60;
+                    }
+                }
+            });
+        }
+
+        function createCheckersSet() {
+            // Criar tabuleiro primeiro
+            createPieceAtPosition('checker-square-light', 50, 50, true);
+            
+            // Criar peças
+            const pieceTypes = ['checker-light', 'checker-dark'];
+            let x = 300, y = 50;
+            
+            pieceTypes.forEach(type => {
+                for (let i = 0; i < 12; i++) {
+                    createPieceAtPosition(type, x, y);
+                    x += 80;
+                    if (x > 700) {
+                        x = 300;
+                        y += 80;
+                    }
+                }
+            });
+            
+            // Adicionar algumas peças rei
+            createPieceAtPosition('checker-light-king', 300, 250);
+            createPieceAtPosition('checker-dark-king', 380, 250);
+        }
+
+        function createTicTacToeSet() {
+            // Criar tabuleiro
+            createPieceAtPosition('tictactoe-board', 50, 50, true);
+            
+            // Criar peças X e O
+            let x = 300, y = 50;
+            
+            for (let i = 0; i < 5; i++) {
+                createPieceAtPosition('tictactoe-x', x, y);
+                createPieceAtPosition('tictactoe-o', x, y + 80);
+                x += 80;
+            }
+        }
+
+        function createPieceAtPosition(pieceType, x, y, isLarge = false) {
+            const template = document.querySelector(`[data-piece-type="${pieceType}"]`);
+            if (!template) return;
+            
+            const clone = template.cloneNode(true);
+            clone.classList.add('display-piece');
+            clone.classList.remove('piece-wrapper');
+            
+            if (isLarge) {
+                clone.classList.add('large-piece-wrapper');
+            }
+            
+            clone.style.left = x + 'px';
+            clone.style.top = y + 'px';
+            
+            const displayArea = document.getElementById('display-area');
+            displayArea.appendChild(clone);
+            
+            // Adicionar eventos
+            clone.addEventListener('mousedown', startMovePiece);
+            clone.addEventListener('dblclick', removePiece);
+            
+            updatePieceCounter();
+            updateDisplayAreaState();
+        }
+
+        function exportSVG() {
+            const displayArea = document.getElementById('display-area');
+            const pieces = displayArea.querySelectorAll('.display-piece');
+            
+            if (pieces.length === 0) {
+                alert('Adicione algumas peças antes de exportar!');
+                return;
+            }
+            
+            // Criar SVG combinado
+            let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${displayArea.offsetWidth} ${displayArea.offsetHeight}">`;
+            
+            pieces.forEach(piece => {
+                const svg = piece.querySelector('svg');
+                const rect = piece.getBoundingClientRect();
+                const displayRect = displayArea.getBoundingClientRect();
+                
+                const x = rect.left - displayRect.left;
+                const y = rect.top - displayRect.top;
+                
+                svgContent += `<g transform="translate(${x}, ${y})">`;
+                svgContent += svg.innerHTML;
+                svgContent += `</g>`;
+            });
+            
+            svgContent += '</svg>';
+            
+            // Criar download
+            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'laser-cutting-layout.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', initializeDragAndDrop);
+
+        // Prevenir seleção de texto durante o drag
+        document.addEventListener('selectstart', e => {
+            if (draggedElement) e.preventDefault();
+        });
+    </script>
 </body>
 </html>
