@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador de Peças de Jogos para Impressão a Laser (HTML/CSS)</title>
+    <title>Visualizador de Peças de Jogos para Impressão a Laser</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -35,7 +35,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             position: relative;
-            overflow: visible;
+            overflow: visible; /* Changed to visible for pieces to go outside slightly if dragged there */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -48,6 +48,8 @@
         #display-area.has-pieces {
             font-size: 0;
             color: transparent;
+            justify-content: flex-start; /* Adjust alignment when pieces are present */
+            align-items: flex-start;
         }
 
         /* Estilos para os wrappers das peças na paleta */
@@ -77,37 +79,86 @@
         .display-piece {
             position: absolute;
             cursor: move;
-            transition: transform 0.1s;
+            transition: border-color 0.1s, box-shadow 0.1s; /* Smoother selection feedback */
             z-index: 10;
+            border: 2px solid transparent;
+            box-sizing: content-box; /* Ensures padding/border doesn't affect size */
         }
 
         .display-piece:hover {
-            transform: scale(1.02);
+            border-color: #007bff;
+        }
+
+        .display-piece.selected {
+            border-color: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+            z-index: 20; /* Bring selected piece to front */
         }
 
         .display-piece.dragging {
             z-index: 100;
-            transform: scale(1.1);
+            opacity: 0.8; /* Slight opacity change when dragging */
+        }
+        
+        .display-piece[data-group-id] {
+            outline: 2px dashed #28a745; /* Green dashed outline for grouped pieces */
+            outline-offset: 2px; /* Small offset from the piece border */
         }
 
-        /* Wrapper especial para peças grandes no display */
+        /* Controles de redimensionamento */
+        .resize-controls {
+            position: absolute;
+            top: -25px; /* Adjust position to be above the piece */
+            right: -25px; /* Adjust position to be to the right of the piece */
+            display: none;
+            gap: 5px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 3px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .display-piece.selected .resize-controls {
+            display: flex;
+        }
+
+        .resize-btn {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0; /* Remove default button padding */
+        }
+
+        .resize-btn:hover {
+            background: #0056b3;
+        }
+
+        /* Wrapper especial para peças grandes na paleta (mantido para visualização) */
         .large-piece-wrapper {
             width: 140px;
             height: 140px;
         }
 
-        /* Estilos para os SVGs das peças */
+        /* Estilos para os SVGs das peças (para visualização no browser) */
         .piece-svg {
             width: 90%;
             height: 90%;
             fill: #343a40; /* Cor padrão para as formas */
             stroke: #212529;
-            stroke-width: 1.5; /* Borda para o corte a laser */
+            stroke-width: 1.5; /* Borda para o corte a laser (visual apenas) */
             user-select: none;
-            pointer-events: none;
+            pointer-events: none; /* Prevents SVG itself from being the drag target */
         }
 
-        /* Estilos específicos para jogos */
+        /* Estilos específicos para jogos (para visualização no browser) */
         .domino-dot {
             fill: #fff;
             stroke: #fff;
@@ -130,7 +181,7 @@
             stroke-width: 3;
         }
 
-        /* Estilos para o Jogo de Damas */
+        /* Estilos para o Jogo de Damas (para visualização no browser) */
         .checker-piece-light {
             fill: #adb5bd; /* Cor clara para uma das equipes */
             stroke: #6c757d;
@@ -186,41 +237,44 @@
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 12px;
+            z-index: 1000; /* Ensure it's always on top */
         }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <h1 class="text-center mb-4">Visualizador de Peças de Jogos para Impressão a Laser</h1>
-        <p class="text-center text-muted">Arraste as peças da paleta para a área de visualização. Clique duas vezes em uma peça para removê-la.</p>
+        <p class="text-center text-muted">Arraste as peças da paleta para a área de visualização. Clique em uma peça para selecioná-la (use Ctrl+clique para múltiplos). Clique duas vezes para remover.</p>
 
         <div class="control-buttons">
-            <button class="btn btn-primary" onclick="createCompleteGame('domino')">Criar Jogo de Dominó Completo</button>
-            <button class="btn btn-success" onclick="createCompleteGame('checkers')">Criar Jogo de Damas Completo</button>
-            <button class="btn btn-info" onclick="createCompleteGame('tictactoe')">Criar Jogo da Velha Completo</button>
-            <button class="btn btn-warning" onclick="clearDisplay()">Limpar Tudo</button>
-            <button class="btn btn-secondary" onclick="exportSVG()">Exportar SVG</button>
+            <button class="btn btn-primary" onclick="createCompleteGame('domino')">Gerar Dominó (28 Peças)</button>
+            <button class="btn btn-success" onclick="createCompleteGame('checkers')">Gerar Damas (24 Peças)</button>
+            <button class="btn btn-info" onclick="createCompleteGame('tictactoe')">Gerar Jogo da Velha</button>
+            <button class="btn btn-warning" onclick="clearDisplay()">Limpar Todas as Peças</button>
+            <button class="btn btn-outline-primary" onclick="selectAllPieces()">Selecionar Todas</button>
+            <button class="btn btn-outline-success" onclick="groupSelectedPieces()">Agrupar Selecionadas</button>
+            <button class="btn btn-outline-danger" onclick="ungroupSelectedPieces()">Desagrupar Selecionadas</button>
+            <button class="btn btn-secondary" onclick="exportSVG()">Exportar para SVG</button>
         </div>
 
         <div class="row">
             <div class="col-md-3">
                 <h3>Paleta de Peças</h3>
                 <div id="pieces-palette">
-                    <!-- Peças de Dominó -->
-                    <div class="piece-wrapper" data-piece-type="domino-0-0">
+                    <div class="piece-wrapper" data-piece-type="domino" data-value-1="0" data-value-2="0">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper" data-piece-type="domino-0-1">
+                    <div class="piece-wrapper" data-piece-type="domino" data-value-1="0" data-value-2="1">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
                             <circle class="domino-dot" cx="75" cy="25" r="3"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper" data-piece-type="domino-1-2">
+                    <div class="piece-wrapper" data-piece-type="domino" data-value-1="1" data-value-2="2">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
@@ -229,7 +283,7 @@
                             <circle class="domino-dot" cx="80" cy="35" r="3"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper" data-piece-type="domino-3-3">
+                    <div class="piece-wrapper" data-piece-type="domino" data-value-1="3" data-value-2="3">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
@@ -241,7 +295,7 @@
                             <circle class="domino-dot" cx="80" cy="35" r="3"/>
                         </svg>
                     </div>
-                    <div class="piece-wrapper" data-piece-type="domino-6-6">
+                    <div class="piece-wrapper" data-piece-type="domino" data-value-1="6" data-value-2="6">
                         <svg class="piece-svg" viewBox="0 0 100 50">
                             <rect x="5" y="5" width="90" height="40" rx="5" ry="5"/>
                             <line x1="50" y1="5" x2="50" y2="45" stroke="#fefefe" stroke-width="2"/>
@@ -260,7 +314,6 @@
                         </svg>
                     </div>
 
-                    <!-- Peças de Damas -->
                     <div class="piece-wrapper" data-piece-type="checker-light">
                         <svg class="piece-svg checker-piece-light" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" />
@@ -294,7 +347,6 @@
                         </svg>
                     </div>
 
-                    <!-- Peças de Jogo da Velha -->
                     <div class="piece-wrapper" data-piece-type="tictactoe-x">
                         <svg class="piece-svg" viewBox="0 0 100 100">
                             <line class="tictactoe-x" x1="20" y1="20" x2="80" y2="80" />
@@ -321,9 +373,9 @@
                 <h3>Área de Visualização para Corte a Laser</h3>
                 <div id="display-area">
                     <div class="piece-counter" id="piece-counter">0 peças</div>
-                    Arraste as peças da paleta para aqui para visualizar seu layout de corte.
+                    Arraste as peças da paleta para esta área para criar seu layout de corte.
                     <br><br>
-                    Use os botões acima para criar jogos completos automaticamente.
+                    Use os botões acima para gerar conjuntos de jogos completos ou gerencie suas peças individualmente.
                 </div>
             </div>
         </div>
@@ -333,56 +385,80 @@
         let draggedElement = null;
         let offset = { x: 0, y: 0 };
         let pieceCounter = 0;
+        let selectedPieces = new Set();
+        let groupCounter = 0;
 
-        // Inicializar eventos de drag and drop
+        // Initialize drag and drop and other events
         function initializeDragAndDrop() {
             const pieceWrappers = document.querySelectorAll('.piece-wrapper');
             const displayArea = document.getElementById('display-area');
 
-            // Adicionar eventos para as peças da paleta
+            // Add events for palette pieces
             pieceWrappers.forEach(wrapper => {
                 wrapper.addEventListener('mousedown', startDrag);
             });
 
-            // Adicionar eventos para a área de display
-            displayArea.addEventListener('dragover', handleDragOver);
-            displayArea.addEventListener('drop', handleDrop);
+            // Add events for the display area
             displayArea.addEventListener('mousemove', handleMouseMove);
             displayArea.addEventListener('mouseup', handleMouseUp);
+            displayArea.addEventListener('click', handleDisplayClick);
 
-            // Prevenir comportamentos padrão
+            // Prevent default drag/drop behavior on display area
             displayArea.addEventListener('dragover', e => e.preventDefault());
             displayArea.addEventListener('drop', e => e.preventDefault());
+
+            updatePieceCounter(); // Initialize counter on load
+            updateDisplayAreaState(); // Set initial display area message
         }
 
         function startDrag(e) {
             e.preventDefault();
             const wrapper = e.currentTarget;
             
-            // Criar uma cópia da peça
+            // Create a copy of the piece to add to the display area
             const clone = wrapper.cloneNode(true);
             clone.classList.add('display-piece');
             clone.classList.remove('piece-wrapper');
             
-            // Posicionar a peça na área de display
+            // Add resize controls to the new piece
+            const resizeControls = document.createElement('div');
+            resizeControls.className = 'resize-controls';
+            resizeControls.innerHTML = `
+                <button class="resize-btn" onclick="resizePiece(event, 0.8)" title="Diminuir">-</button>
+                <button class="resize-btn" onclick="resizePiece(event, 1.2)" title="Aumentar">+</button>
+            `;
+            clone.appendChild(resizeControls);
+            
+            // Position the piece in the display area
             const displayArea = document.getElementById('display-area');
             const rect = displayArea.getBoundingClientRect();
             
-            clone.style.left = (e.clientX - rect.left - 35) + 'px';
-            clone.style.top = (e.clientY - rect.top - 35) + 'px';
-            
+            // Initial position based on mouse click
+            clone.style.left = (e.clientX - rect.left - (clone.offsetWidth / 2)) + 'px';
+            clone.style.top = (e.clientY - rect.top - (clone.offsetHeight / 2)) + 'px';
+            clone.dataset.scale = '1'; // Default scale
+            clone.dataset.pieceId = 'piece_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); // Unique ID
+
+            // If it's a domino, carry over its specific data for full set generation
+            if (wrapper.dataset.pieceType === 'domino') {
+                clone.dataset.value1 = wrapper.dataset.value1;
+                clone.dataset.value2 = wrapper.dataset.value2;
+            }
+            clone.dataset.pieceType = wrapper.dataset.pieceType; // Keep the original piece type for export
+
             displayArea.appendChild(clone);
             
-            // Configurar para arrastar a nova peça
+            // Set for dragging the new piece
             draggedElement = clone;
-            offset.x = 35;
-            offset.y = 35;
+            offset.x = (clone.offsetWidth / 2);
+            offset.y = (clone.offsetHeight / 2);
             
             clone.classList.add('dragging');
             
-            // Adicionar eventos específicos para esta peça
+            // Add specific events for this new piece
             clone.addEventListener('mousedown', startMovePiece);
             clone.addEventListener('dblclick', removePiece);
+            clone.addEventListener('click', selectPiece);
             
             updatePieceCounter();
             updateDisplayAreaState();
@@ -390,48 +466,227 @@
 
         function startMovePiece(e) {
             e.preventDefault();
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent click event on display area from deselecting
             
-            draggedElement = e.currentTarget;
-            const rect = draggedElement.getBoundingClientRect();
+            // If the piece is not selected and it's not Ctrl+click, clear selections
+            if (!e.ctrlKey && !e.currentTarget.classList.contains('selected')) {
+                clearSelection();
+            }
+            
+            // Select the piece that was clicked
+            selectSinglePiece(e.currentTarget); // Ensure the clicked piece is selected for dragging
+
+            // If it's a group, mark all pieces in the group for dragging
+            if (e.currentTarget.dataset.groupId) {
+                const groupId = e.currentTarget.dataset.groupId;
+                const groupPieces = document.querySelectorAll(`[data-group-id="${groupId}"]`);
+                groupPieces.forEach(piece => {
+                    piece.classList.add('dragging');
+                    // Store initial position for group move
+                    piece.dataset.initialX = parseInt(piece.style.left) || 0;
+                    piece.dataset.initialY = parseInt(piece.style.top) || 0;
+                });
+                draggedElement = { type: 'group', groupId: groupId, pieces: Array.from(groupPieces), initialClientX: e.clientX, initialClientY: e.clientY };
+            } else {
+                draggedElement = e.currentTarget;
+                draggedElement.classList.add('dragging');
+            }
+            
+            // Calculate offset relative to the piece's top-left corner
+            const rect = e.currentTarget.getBoundingClientRect();
             offset.x = e.clientX - rect.left;
             offset.y = e.clientY - rect.top;
-            
-            draggedElement.classList.add('dragging');
         }
 
         function handleMouseMove(e) {
             if (!draggedElement) return;
             
             const displayArea = document.getElementById('display-area');
-            const rect = displayArea.getBoundingClientRect();
+            const displayRect = displayArea.getBoundingClientRect();
             
-            const x = e.clientX - rect.left - offset.x;
-            const y = e.clientY - rect.top - offset.y;
-            
-            draggedElement.style.left = Math.max(0, Math.min(x, rect.width - draggedElement.offsetWidth)) + 'px';
-            draggedElement.style.top = Math.max(0, Math.min(y, rect.height - draggedElement.offsetHeight)) + 'px';
+            if (draggedElement.type === 'group') {
+                const deltaX = e.clientX - draggedElement.initialClientX;
+                const deltaY = e.clientY - draggedElement.initialClientY;
+                
+                draggedElement.pieces.forEach(piece => {
+                    const newLeft = piece.dataset.initialX ? parseInt(piece.dataset.initialX) + deltaX : (e.clientX - displayRect.left - offset.x + (piece.offsetLeft - draggedElement.pieces[0].offsetLeft));
+                    const newTop = piece.dataset.initialY ? parseInt(piece.dataset.initialY) + deltaY : (e.clientY - displayRect.top - offset.y + (piece.offsetTop - draggedElement.pieces[0].offsetTop));
+
+                    piece.style.left = Math.max(0, newLeft) + 'px';
+                    piece.style.top = Math.max(0, newTop) + 'px';
+                });
+            } else {
+                // Individual piece movement
+                const x = e.clientX - displayRect.left - offset.x;
+                const y = e.clientY - displayRect.top - offset.y;
+                
+                // Keep piece within bounds of display area
+                draggedElement.style.left = Math.max(0, Math.min(x, displayRect.width - draggedElement.offsetWidth)) + 'px';
+                draggedElement.style.top = Math.max(0, Math.min(y, displayRect.height - draggedElement.offsetHeight)) + 'px';
+            }
         }
 
         function handleMouseUp(e) {
             if (draggedElement) {
-                draggedElement.classList.remove('dragging');
+                if (draggedElement.type === 'group') {
+                    draggedElement.pieces.forEach(piece => {
+                        piece.classList.remove('dragging');
+                        // Clear initial positions after move
+                        delete piece.dataset.initialX;
+                        delete piece.dataset.initialY;
+                    });
+                } else {
+                    draggedElement.classList.remove('dragging');
+                }
                 draggedElement = null;
             }
         }
 
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
+        function handleDisplayClick(e) {
+            // If clicking directly on the display area, clear selection
+            if (e.target.id === 'display-area') {
+                clearSelection();
+            }
         }
 
-        function handleDrop(e) {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
+        function selectPiece(e) {
+            e.stopPropagation(); // Prevent the click from propagating to the display area
+            const piece = e.currentTarget;
+            
+            if (e.ctrlKey) {
+                // Ctrl+click for multiple selection
+                togglePieceSelection(piece);
+            } else {
+                // Normal click - select only this piece
+                clearSelection();
+                selectSinglePiece(piece);
+            }
+        }
+
+        function selectSinglePiece(piece) {
+            if (!selectedPieces.has(piece)) {
+                piece.classList.add('selected');
+                selectedPieces.add(piece);
+            }
+        }
+
+        function togglePieceSelection(piece) {
+            if (selectedPieces.has(piece)) {
+                piece.classList.remove('selected');
+                selectedPieces.delete(piece);
+            } else {
+                piece.classList.add('selected');
+                selectedPieces.add(piece);
+            }
+        }
+
+        function clearSelection() {
+            selectedPieces.forEach(piece => {
+                piece.classList.remove('selected');
+            });
+            selectedPieces.clear();
+        }
+
+        function selectAllPieces() {
+            const displayArea = document.getElementById('display-area');
+            const pieces = displayArea.querySelectorAll('.display-piece');
+            
+            clearSelection();
+            pieces.forEach(piece => {
+                selectSinglePiece(piece);
+            });
+        }
+
+        function resizePiece(e, factor) {
+            e.stopPropagation(); // Prevent selecting/dragging the piece itself
+            const piece = e.target.closest('.display-piece');
+            if (!piece) return; // Should not happen with proper event delegation
+
+            const currentScale = parseFloat(piece.dataset.scale || 1);
+            const newScale = Math.max(0.2, Math.min(5, currentScale * factor)); // Min 20%, Max 500%
+            
+            // Adjust the piece's display size directly
+            piece.style.transform = `scale(${newScale})`;
+            piece.dataset.scale = newScale;
+
+            // Recalculate dimensions for SVG export accurately
+            const svgElement = piece.querySelector('svg');
+            if (svgElement) {
+                 const originalWidth = parseFloat(svgElement.getAttribute('viewBox').split(' ')[2]);
+                 const originalHeight = parseFloat(svgElement.getAttribute('viewBox').split(' ')[3]);
+                 svgElement.style.width = `${originalWidth * newScale}px`;
+                 svgElement.style.height = `${originalHeight * newScale}px`;
+            }
+        }
+
+        function groupSelectedPieces() {
+            if (selectedPieces.size < 2) {
+                alert('Selecione pelo menos 2 peças para agrupar!');
+                return;
+            }
+            
+            groupCounter++;
+            const groupId = 'group_' + groupCounter;
+            
+            selectedPieces.forEach(piece => {
+                piece.dataset.groupId = groupId;
+                // No need to change outline here, CSS handles it via data-group-id attribute
+            });
+            
+            clearSelection();
+            alert(`Grupo ${groupId} criado com ${selectedPieces.size} peças.`);
+        }
+
+        function ungroupSelectedPieces() {
+            if (selectedPieces.size === 0) {
+                alert('Selecione peças agrupadas para desagrupar!');
+                return;
+            }
+            
+            let ungroupedCount = 0;
+            const groupsToUngroup = new Set();
+
+            selectedPieces.forEach(piece => {
+                if (piece.dataset.groupId) {
+                    groupsToUngroup.add(piece.dataset.groupId);
+                }
+            });
+
+            if (groupsToUngroup.size === 0) {
+                 alert('Nenhuma peça selecionada faz parte de um grupo.');
+                 return;
+            }
+
+            groupsToUngroup.forEach(groupId => {
+                const piecesInGroup = document.querySelectorAll(`[data-group-id="${groupId}"]`);
+                piecesInGroup.forEach(p => {
+                    delete p.dataset.groupId;
+                    p.classList.remove('selected'); // Also deselect them
+                    ungroupedCount++;
+                });
+            });
+
+            clearSelection();
+            alert(`Desagrupadas ${ungroupedCount} peças de ${groupsToUngroup.size} grupo(s).`);
         }
 
         function removePiece(e) {
-            e.currentTarget.remove();
+            e.stopPropagation();
+            const piece = e.currentTarget;
+            
+            // If it's part of a group, remove the entire group
+            if (piece.dataset.groupId) {
+                const groupId = piece.dataset.groupId;
+                const groupPieces = document.querySelectorAll(`[data-group-id="${groupId}"]`);
+                groupPieces.forEach(p => {
+                    selectedPieces.delete(p);
+                    p.remove();
+                });
+            } else {
+                selectedPieces.delete(piece);
+                piece.remove();
+            }
+            
             updatePieceCounter();
             updateDisplayAreaState();
         }
@@ -453,95 +708,44 @@
         }
 
         function clearDisplay() {
-            const displayArea = document.getElementById('display-area');
-            const pieces = displayArea.querySelectorAll('.display-piece');
-            pieces.forEach(piece => piece.remove());
-            updatePieceCounter();
-            updateDisplayAreaState();
-        }
-
-        function createCompleteGame(gameType) {
-            clearDisplay();
-            
-            const displayArea = document.getElementById('display-area');
-            const rect = displayArea.getBoundingClientRect();
-            
-            if (gameType === 'domino') {
-                createDominoSet();
-            } else if (gameType === 'checkers') {
-                createCheckersSet();
-            } else if (gameType === 'tictactoe') {
-                createTicTacToeSet();
+            if (confirm('Tem certeza que deseja remover TODAS as peças?')) {
+                const displayArea = document.getElementById('display-area');
+                const pieces = displayArea.querySelectorAll('.display-piece');
+                pieces.forEach(piece => piece.remove());
+                selectedPieces.clear();
+                updatePieceCounter();
+                updateDisplayAreaState();
             }
         }
 
-        function createDominoSet() {
-            const dominoTypes = [
-                'domino-0-0', 'domino-0-1', 'domino-1-2', 'domino-3-3', 'domino-6-6'
-            ];
-            
-            let x = 20, y = 20;
-            const spacing = 110;
-            const maxWidth = 800;
-            
-            // Criar múltiplas peças de cada tipo
-            dominoTypes.forEach((type, index) => {
-                for (let i = 0; i < 3; i++) {
-                    createPieceAtPosition(type, x, y);
-                    x += spacing;
-                    if (x > maxWidth) {
-                        x = 20;
-                        y += 60;
-                    }
-                }
-            });
-        }
+        // Helper to create a piece at a specific position with optional scale
+        function createPieceAtPosition(pieceType, x, y, options = {}) {
+            const { isLarge = false, scale = 1, value1, value2 } = options;
 
-        function createCheckersSet() {
-            // Criar tabuleiro primeiro
-            createPieceAtPosition('checker-square-light', 50, 50, true);
-            
-            // Criar peças
-            const pieceTypes = ['checker-light', 'checker-dark'];
-            let x = 300, y = 50;
-            
-            pieceTypes.forEach(type => {
-                for (let i = 0; i < 12; i++) {
-                    createPieceAtPosition(type, x, y);
-                    x += 80;
-                    if (x > 700) {
-                        x = 300;
-                        y += 80;
-                    }
-                }
-            });
-            
-            // Adicionar algumas peças rei
-            createPieceAtPosition('checker-light-king', 300, 250);
-            createPieceAtPosition('checker-dark-king', 380, 250);
-        }
-
-        function createTicTacToeSet() {
-            // Criar tabuleiro
-            createPieceAtPosition('tictactoe-board', 50, 50, true);
-            
-            // Criar peças X e O
-            let x = 300, y = 50;
-            
-            for (let i = 0; i < 5; i++) {
-                createPieceAtPosition('tictactoe-x', x, y);
-                createPieceAtPosition('tictactoe-o', x, y + 80);
-                x += 80;
+            // Find the template in the palette. Use data-piece-type and data-value-x for dominoes
+            let template;
+            if (pieceType === 'domino' && value1 !== undefined && value2 !== undefined) {
+                template = document.querySelector(`.piece-wrapper[data-piece-type="domino"][data-value-1="${value1}"][data-value-2="${value2}"]`);
+            } else {
+                template = document.querySelector(`.piece-wrapper[data-piece-type="${pieceType}"]`);
             }
-        }
-
-        function createPieceAtPosition(pieceType, x, y, isLarge = false) {
-            const template = document.querySelector(`[data-piece-type="${pieceType}"]`);
-            if (!template) return;
+            
+            if (!template) {
+                console.warn(`Template not found for pieceType: ${pieceType}, values: ${value1}-${value2}`);
+                return;
+            }
             
             const clone = template.cloneNode(true);
             clone.classList.add('display-piece');
             clone.classList.remove('piece-wrapper');
+            
+            const resizeControls = document.createElement('div');
+            resizeControls.className = 'resize-controls';
+            resizeControls.innerHTML = `
+                <button class="resize-btn" onclick="resizePiece(event, 0.8)" title="Diminuir">-</button>
+                <button class="resize-btn" onclick="resizePiece(event, 1.2)" title="Aumentar">+</button>
+            `;
+            clone.appendChild(resizeControls);
             
             if (isLarge) {
                 clone.classList.add('large-piece-wrapper');
@@ -549,62 +753,358 @@
             
             clone.style.left = x + 'px';
             clone.style.top = y + 'px';
+            clone.dataset.scale = scale;
+            clone.dataset.pieceId = 'piece_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            // Set data attributes for specific piece types (e.g., domino values)
+            if (pieceType === 'domino') {
+                clone.dataset.value1 = value1;
+                clone.dataset.value2 = value2;
+            }
+            clone.dataset.pieceType = pieceType;
+            
+            if (scale !== 1) {
+                clone.style.transform = `scale(${scale})`;
+                // Also scale the internal SVG's width/height for accurate bounding box
+                const svgElement = clone.querySelector('svg');
+                if (svgElement) {
+                    const viewBoxParts = svgElement.getAttribute('viewBox').split(' ');
+                    const originalWidth = parseFloat(viewBoxParts[2]);
+                    const originalHeight = parseFloat(viewBoxParts[3]);
+                    svgElement.style.width = `${originalWidth * scale}px`;
+                    svgElement.style.height = `${originalHeight * scale}px`;
+                }
+            }
             
             const displayArea = document.getElementById('display-area');
             displayArea.appendChild(clone);
             
-            // Adicionar eventos
+            // Add events
             clone.addEventListener('mousedown', startMovePiece);
             clone.addEventListener('dblclick', removePiece);
+            clone.addEventListener('click', selectPiece);
             
             updatePieceCounter();
             updateDisplayAreaState();
         }
+
+        function createCompleteGame(gameType) {
+            clearDisplay(); // Always clear before generating a full set
+            
+            const displayAreaWidth = document.getElementById('display-area').offsetWidth;
+            const displayAreaHeight = document.getElementById('display-area').offsetHeight;
+
+            if (gameType === 'domino') {
+                let x = 20, y = 20;
+                const pieceWidth = 70 * 0.7; // Assuming default piece size and a desired smaller scale for auto-gen
+                const pieceHeight = 70 * 0.7;
+                const hSpacing = pieceWidth + 10;
+                const vSpacing = pieceHeight + 10;
+                const maxCols = Math.floor((displayAreaWidth - 40) / hSpacing); // 20px padding on each side
+
+                for (let i = 0; i <= 6; i++) {
+                    for (let j = i; j <= 6; j++) {
+                        createPieceAtPosition('domino', x, y, { scale: 0.7, value1: i, value2: j });
+                        x += hSpacing;
+                        if (x + pieceWidth > displayAreaWidth - 20) {
+                            x = 20;
+                            y += vSpacing;
+                        }
+                    }
+                }
+            } else if (gameType === 'checkers') {
+                let x = 20, y = 20;
+                const pieceSize = 70 * 0.7; // Scaled down for better fit
+                const spacing = pieceSize + 5;
+                const piecesPerRow = Math.floor((displayAreaWidth - 40) / spacing);
+
+                // 12 light checkers
+                for (let i = 0; i < 12; i++) {
+                    createPieceAtPosition('checker-light', x, y, { scale: 0.7 });
+                    x += spacing;
+                    if (x + pieceSize > displayAreaWidth - 20) {
+                        x = 20;
+                        y += spacing;
+                    }
+                }
+                
+                // Add some vertical space before dark checkers
+                y += spacing;
+                x = 20;
+
+                // 12 dark checkers
+                for (let i = 0; i < 12; i++) {
+                    createPieceAtPosition('checker-dark', x, y, { scale: 0.7 });
+                    x += spacing;
+                    if (x + pieceSize > displayAreaWidth - 20) {
+                        x = 20;
+                        y += spacing;
+                    }
+                }
+            } else if (gameType === 'tictactoe') {
+                // Tic-tac-toe board
+                createPieceAtPosition('tictactoe-board', 50, 50, { isLarge: true, scale: 0.8 });
+                
+                // X pieces
+                let x = 300, y = 50;
+                const pieceSize = 70 * 0.6; // Scaled down
+                const spacing = pieceSize + 10;
+                for (let i = 0; i < 5; i++) {
+                    createPieceAtPosition('tictactoe-x', x, y, { scale: 0.6 });
+                    x += spacing;
+                }
+                
+                // O pieces
+                x = 300;
+                y += spacing + 10; // Space for O pieces
+                for (let i = 0; i < 5; i++) {
+                    createPieceAtPosition('tictactoe-o', x, y, { scale: 0.6 });
+                    x += spacing;
+                }
+            }
+            updatePieceCounter();
+            updateDisplayAreaState();
+        }
+
+        // Function to render domino dots dynamically based on value for export
+        function renderDominoDots(svgElement, value, side) {
+            let dotsSvg = '';
+            let centerX, centerY;
+
+            if (side === 'left') {
+                centerX = 25;
+                centerY = 25;
+            } else { // right side
+                centerX = 75;
+                centerY = 25;
+            }
+
+            switch (value) {
+                case 1:
+                    dotsSvg += `<circle cx="${centerX}" cy="${centerY}" r="3"/>`;
+                    break;
+                case 2:
+                    dotsSvg += `<circle cx="${centerX - 5}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 5}" cy="${centerY + 10}" r="3"/>`;
+                    break;
+                case 3:
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX}" cy="${centerY}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY + 10}" r="3"/>`;
+                    break;
+                case 4:
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY + 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY + 10}" r="3"/>`;
+                    break;
+                case 5:
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY + 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY + 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX}" cy="${centerY}" r="3"/>`;
+                    break;
+                case 6:
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY - 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX - 10}" cy="${centerY + 10}" r="3"/>`;
+                    dotsSvg += `<circle cx="${centerX + 10}" cy="${centerY + 10}" r="3"/>`;
+                    break;
+            }
+            return dotsSvg;
+        }
+
 
         function exportSVG() {
             const displayArea = document.getElementById('display-area');
             const pieces = displayArea.querySelectorAll('.display-piece');
             
             if (pieces.length === 0) {
-                alert('Adicione algumas peças antes de exportar!');
+                alert('Adicione algumas peças antes de exportar para SVG!');
                 return;
             }
             
-            // Criar SVG combinado
-            let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${displayArea.offsetWidth} ${displayArea.offsetHeight}">`;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            
+            // To accurately get the bounding box of scaled elements without adding them to DOM permanently
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.visibility = 'hidden';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '-9999px';
+            document.body.appendChild(tempDiv); 
             
             pieces.forEach(piece => {
-                const svg = piece.querySelector('svg');
-                const rect = piece.getBoundingClientRect();
-                const displayRect = displayArea.getBoundingClientRect();
+                const pieceClone = piece.cloneNode(true);
+                // Remove UI specific elements from the clone
+                const resizeControls = pieceClone.querySelector('.resize-controls');
+                if (resizeControls) {
+                    resizeControls.remove();
+                }
+
+                // Apply current transform scale directly to the SVG element within the clone
+                const svgElement = pieceClone.querySelector('svg');
+                if (svgElement && piece.dataset.scale && piece.dataset.scale !== '1') {
+                    const scale = parseFloat(piece.dataset.scale);
+                    // Adjust SVG dimensions to reflect actual scaled size for accurate bounding box
+                    const viewBox = svgElement.getAttribute('viewBox').split(' ').map(Number);
+                    const originalWidth = viewBox[2];
+                    const originalHeight = viewBox[3];
+                    
+                    svgElement.style.width = `${originalWidth * scale}px`;
+                    svgElement.style.height = `${originalHeight * scale}px`;
+                    svgElement.style.transform = `scale(1)`; // Reset inline transform if any, rely on pieceWrapper's transform
+                    svgElement.style.transformOrigin = '0 0'; 
+                }
                 
-                const x = rect.left - displayRect.left;
-                const y = rect.top - displayRect.top;
+                // Temporarily append the clone to measure its actual size after scaling
+                tempDiv.appendChild(pieceClone);
+                const rect = pieceClone.getBoundingClientRect(); // Get actual dimensions after CSS transform
                 
-                svgContent += `<g transform="translate(${x}, ${y})">`;
-                svgContent += svg.innerHTML;
-                svgContent += `</g>`;
+                // Use offsetLeft/Top for position relative to the display area's origin
+                const x = piece.offsetLeft; 
+                const y = piece.offsetTop;
+
+                const width = rect.width;
+                const height = rect.height;
+                
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + width);
+                maxY = Math.max(maxY, y + height);
+
+                tempDiv.removeChild(pieceClone); // Remove clone after measurement
             });
+
+            document.body.removeChild(tempDiv); // Clean up temporary div
             
-            svgContent += '</svg>';
+            // Add margin around the content
+            const margin = 20; // in pixels
+            minX -= margin;
+            minY -= margin;
+            maxX += margin;
+            maxY += margin;
             
-            // Criar download
-            const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+            // Calculate SVG dimensions in pixels (based on screen representation)
+            const svgWidthPx = maxX - minX;
+            const svgHeightPx = maxY - minY;
+
+            // Convert pixel dimensions to millimeters (assuming 1px = 0.264583mm for 96 DPI)
+            const pxToMm = 0.264583; 
+            const svgWidthMm = svgWidthPx * pxToMm;
+            const svgHeightMm = svgHeightPx * pxToMm;
+
+            let svgElements = '';
+            pieces.forEach(piece => {
+                const pieceSvg = piece.querySelector('svg').cloneNode(true);
+                const currentScale = parseFloat(piece.dataset.scale || 1);
+
+                // For dominoes, generate dots based on data attributes
+                if (piece.dataset.pieceType === 'domino') {
+                    const rectElement = pieceSvg.querySelector('rect');
+                    const lineElement = pieceSvg.querySelector('line');
+                    // Remove existing dots from the cloned SVG if any
+                    pieceSvg.querySelectorAll('.domino-dot').forEach(dot => dot.remove());
+
+                    const newDominoContent = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    if (rectElement) newDominoContent.appendChild(rectElement.cloneNode(true));
+                    if (lineElement) newDominoContent.appendChild(lineElement.cloneNode(true));
+                    
+                    const dots1 = renderDominoDots(pieceSvg, parseInt(piece.dataset.value1), 'left');
+                    const dots2 = renderDominoDots(pieceSvg, parseInt(piece.dataset.value2), 'right');
+                    newDominoContent.innerHTML += dots1 + dots2;
+                    
+                    // Replace the original SVG content with the new content (rect + line + dots)
+                    // Clear existing contents of pieceSvg
+                    while (pieceSvg.firstChild) {
+                        pieceSvg.removeChild(pieceSvg.firstChild);
+                    }
+                    pieceSvg.appendChild(newDominoContent);
+                }
+
+
+                // Calculate position relative to the new viewBox origin
+                const x = piece.offsetLeft - minX;
+                const y = piece.offsetTop - minY;
+
+                // Create a group element to apply transformations
+                const gElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gElement.setAttribute('transform', `translate(${x} ${y}) scale(${currentScale})`);
+
+                // Move all children of the original SVG to the new G element
+                while (pieceSvg.firstChild) {
+                    gElement.appendChild(pieceSvg.firstChild);
+                }
+                svgElements += gElement.outerHTML;
+            });
+
+            // Define styles suitable for laser cutting
+            const laserStyles = `
+                .piece-svg * { /* Apply to all elements within piece-svg to ensure proper inheritance */
+                    fill: none; /* Default to no fill for primary shapes for cutting */
+                    stroke: black; /* Standard stroke color for cutting */
+                    stroke-width: 0.01mm; /* Hairline width for laser cutting */
+                    vector-effect: non-scaling-stroke; /* Ensure stroke width remains constant */
+                    stroke-linecap: butt; /* Default to butt for clean corners */
+                    stroke-linejoin: miter; /* Default to miter */
+                }
+                /* Specific overrides for engraving */
+                .domino-dot, .checker-king-marker {
+                    fill: black; /* Solid fill for engraving */
+                    stroke: none; /* No cut line for engraved elements */
+                }
+                .tictactoe-x, .tictactoe-o {
+                    fill: none;
+                    stroke: black;
+                    stroke-width: 0.01mm;
+                    stroke-linecap: round; /* Round caps for Tic-Tac-Toe X/O */
+                }
+                .tictactoe-board-line {
+                    fill: none;
+                    stroke: black;
+                    stroke-width: 0.01mm;
+                }
+            `;
+
+            const svgContent = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="${svgWidthMm.toFixed(2)}mm"
+   height="${svgHeightMm.toFixed(2)}mm"
+   viewBox="${minX} ${minY} ${svgWidthPx} ${svgHeightPx}"
+   version="1.1"
+   id="svg_laser_export">
+  <defs
+     id="defs_laser_export">
+    <style type="text/css"><![CDATA[
+        ${laserStyles}
+    ]]></style>
+  </defs>
+  ${svgElements}
+</svg>`;
+            
+            const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'laser-cutting-layout.svg';
+            a.download = 'pecas_para_corte_laser.svg';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        // Inicializar quando a página carregar
+        // Initialize drag and drop when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', initializeDragAndDrop);
-
-        // Prevenir seleção de texto durante o drag
-        document.addEventListener('selectstart', e => {
-            if (draggedElement) e.preventDefault();
-        });
     </script>
 </body>
 </html>
